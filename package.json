@@ -2,6 +2,7 @@
   "name": "othello-game",
   "private": true,
   "version": "1.0.0",
+  "license": "MIT",
   "description": "Othello (Reversi) - Play Coop! Classic strategy game with disc-flipping action and three difficulty levels. Built with React 19, TypeScript, and smooth animations.",
   "author": "M. Cooper (www.mcooper.com)",
   "keywords": [
