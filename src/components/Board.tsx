@@ -44,6 +44,8 @@ export function Board({
 
   return (
     <div
+      role="grid"
+      aria-label="Othello game board"
       className={cn(
         'relative mx-auto grid aspect-square w-full max-w-2xl gap-1 rounded-lg p-4',
         'bg-gradient-to-br from-green-800 via-green-700 to-green-900',

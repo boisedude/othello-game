@@ -12,7 +12,7 @@ import {
   countDiscs,
   getOpponent,
 } from './othelloRules'
-import { BOARD_SIZE } from '@/types/othello.types'
+import { BOARD_SIZE, AI_CONFIG } from '@/types/othello.types'
 
 /**
  * Gets the AI's move based on difficulty level
@@ -126,7 +126,7 @@ function getMinimaxMove(
   player: Player,
   validMoves: ValidMove[]
 ): { row: number; col: number } {
-  const depth = 6 // Search depth
+  const depth = AI_CONFIG.HARD_SEARCH_DEPTH
   let bestMove: { row: number; col: number } | null = null
   let bestScore = -Infinity
 
@@ -162,8 +162,8 @@ function minimax(
   // Terminal states
   if (isGameOver(board)) {
     const winner = getWinner(board)
-    if (winner === aiPlayer) return 10000 + depth // Prefer faster wins
-    if (winner === opponent) return -10000 - depth // Avoid faster losses
+    if (winner === aiPlayer) return AI_CONFIG.WIN_SCORE + depth // Prefer faster wins
+    if (winner === opponent) return AI_CONFIG.LOSS_SCORE - depth // Avoid faster losses
     return 0 // Draw
   }
 
@@ -219,7 +219,7 @@ function evaluateBoard(board: Board, player: Player): number {
   const opponent = getOpponent(player)
   let score = 0
 
-  // 1. CORNERS (worth 100 points each)
+  // 1. CORNERS (highest value positions)
   const corners = [
     [0, 0],
     [0, BOARD_SIZE - 1],
@@ -227,11 +227,11 @@ function evaluateBoard(board: Board, player: Player): number {
     [BOARD_SIZE - 1, BOARD_SIZE - 1],
   ]
   for (const [row, col] of corners) {
-    if (board[row][col] === player) score += 100
-    else if (board[row][col] === opponent) score -= 100
+    if (board[row][col] === player) score += AI_CONFIG.CORNER_VALUE
+    else if (board[row][col] === opponent) score -= AI_CONFIG.CORNER_VALUE
   }
 
-  // 2. X-SQUARES (cells diagonally adjacent to corners - worth -25 if corner is empty)
+  // 2. X-SQUARES (cells diagonally adjacent to corners - penalty if corner is empty)
   const xSquares = [
     { pos: [1, 1], corner: [0, 0] },
     { pos: [1, BOARD_SIZE - 2], corner: [0, BOARD_SIZE - 1] },
@@ -243,12 +243,12 @@ function evaluateBoard(board: Board, player: Player): number {
     const [cRow, cCol] = xs.corner
     if (board[cRow][cCol] === null) {
       // Corner is empty, X-square is dangerous
-      if (board[xRow][xCol] === player) score -= 25
-      else if (board[xRow][xCol] === opponent) score += 25
+      if (board[xRow][xCol] === player) score -= AI_CONFIG.X_SQUARE_PENALTY
+      else if (board[xRow][xCol] === opponent) score += AI_CONFIG.X_SQUARE_PENALTY
     }
   }
 
-  // 3. C-SQUARES (cells adjacent to corners - worth -20 if corner is empty)
+  // 3. C-SQUARES (cells adjacent to corners - penalty if corner is empty)
   const cSquares = [
     { pos: [0, 1], corner: [0, 0] },
     { pos: [1, 0], corner: [0, 0] },
@@ -263,36 +263,36 @@ function evaluateBoard(board: Board, player: Player): number {
     const [cRow, cCol] = cs.pos
     const [cornerRow, cornerCol] = cs.corner
     if (board[cornerRow][cornerCol] === null) {
-      if (board[cRow][cCol] === player) score -= 20
-      else if (board[cRow][cCol] === opponent) score += 20
+      if (board[cRow][cCol] === player) score -= AI_CONFIG.C_SQUARE_PENALTY
+      else if (board[cRow][cCol] === opponent) score += AI_CONFIG.C_SQUARE_PENALTY
     }
   }
 
-  // 4. EDGES (worth 5 points each, excluding corners and C-squares)
+  // 4. EDGES (excluding corners and C-squares)
   for (let i = 2; i < BOARD_SIZE - 2; i++) {
     // Top and bottom edges
-    if (board[0][i] === player) score += 5
-    else if (board[0][i] === opponent) score -= 5
-    if (board[BOARD_SIZE - 1][i] === player) score += 5
-    else if (board[BOARD_SIZE - 1][i] === opponent) score -= 5
+    if (board[0][i] === player) score += AI_CONFIG.EDGE_VALUE
+    else if (board[0][i] === opponent) score -= AI_CONFIG.EDGE_VALUE
+    if (board[BOARD_SIZE - 1][i] === player) score += AI_CONFIG.EDGE_VALUE
+    else if (board[BOARD_SIZE - 1][i] === opponent) score -= AI_CONFIG.EDGE_VALUE
 
     // Left and right edges
-    if (board[i][0] === player) score += 5
-    else if (board[i][0] === opponent) score -= 5
-    if (board[i][BOARD_SIZE - 1] === player) score += 5
-    else if (board[i][BOARD_SIZE - 1] === opponent) score -= 5
+    if (board[i][0] === player) score += AI_CONFIG.EDGE_VALUE
+    else if (board[i][0] === opponent) score -= AI_CONFIG.EDGE_VALUE
+    if (board[i][BOARD_SIZE - 1] === player) score += AI_CONFIG.EDGE_VALUE
+    else if (board[i][BOARD_SIZE - 1] === opponent) score -= AI_CONFIG.EDGE_VALUE
   }
 
-  // 5. MOBILITY (number of valid moves - worth 2 points per move)
+  // 5. MOBILITY (number of valid moves)
   const playerMoves = getValidMoves(board, player).length
   const opponentMoves = getValidMoves(board, opponent).length
-  score += (playerMoves - opponentMoves) * 2
+  score += (playerMoves - opponentMoves) * AI_CONFIG.MOBILITY_WEIGHT
 
-  // 6. DISC COUNT (less important than position, worth 1 point per disc)
+  // 6. DISC COUNT (less important than position)
   const { black, white } = countDiscs(board)
   const playerDiscs = player === 1 ? black : white
   const opponentDiscs = player === 1 ? white : black
-  score += (playerDiscs - opponentDiscs)
+  score += (playerDiscs - opponentDiscs) * AI_CONFIG.DISC_COUNT_WEIGHT
 
   return score
 }
@@ -313,12 +313,12 @@ function orderMovesByPreference(moves: ValidMove[], board: Board): ValidMove[] {
       (row === BOARD_SIZE - 1 && col === 0) ||
       (row === BOARD_SIZE - 1 && col === BOARD_SIZE - 1)
     ) {
-      return 1000
+      return AI_CONFIG.CORNER_PRIORITY
     }
 
     // Edges
     if (row === 0 || row === BOARD_SIZE - 1 || col === 0 || col === BOARD_SIZE - 1) {
-      return 500
+      return AI_CONFIG.EDGE_PRIORITY
     }
 
     // X-squares (lowest priority unless corner is taken)
@@ -329,12 +329,12 @@ function orderMovesByPreference(moves: ValidMove[], board: Board): ValidMove[] {
       (row === BOARD_SIZE - 2 && col === BOARD_SIZE - 2 && board[BOARD_SIZE - 1][BOARD_SIZE - 1] === null)
 
     if (isXSquare) {
-      return -100
+      return AI_CONFIG.X_SQUARE_PRIORITY
     }
 
     // Center region
     const distanceFromCenter = Math.abs(row - BOARD_SIZE / 2) + Math.abs(col - BOARD_SIZE / 2)
-    return 100 - distanceFromCenter * 10
+    return AI_CONFIG.CENTER_BASE_PRIORITY - distanceFromCenter * AI_CONFIG.CENTER_DISTANCE_MULTIPLIER
   }
 
   return [...moves].sort((a, b) => getMovePriority(b) - getMovePriority(a))

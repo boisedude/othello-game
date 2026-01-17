@@ -3,7 +3,7 @@
  * Shows game result with Othello-themed personality messages
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,37 @@ interface VictoryDialogProps {
   character: Character
 }
 
+/**
+ * Selects a random message from an array
+ */
+function selectRandomMessage(messages: readonly string[]): string {
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+/**
+ * Gets the appropriate victory message based on game result
+ */
+function getVictoryMessage(
+  isDraw: boolean,
+  winner: Player | null,
+  character: Character
+): string {
+  if (isDraw) {
+    const drawMessages = [
+      `It's a perfect tie! Both you and ${character.name} are equally matched!`,
+      `A draw in Othello? ${character.name} is impressed with your strategic balance!`,
+      'The discs have spoken: Neither side prevails. Rematch?',
+      `Tied at the buzzer! ${character.name} wants a rematch to settle this!`,
+      '32-32? This is like chess... but with discs. Well played!',
+    ] as const
+    return selectRandomMessage(drawMessages)
+  } else if (winner === 1) {
+    return selectRandomMessage(character.catchphrases.playerWins)
+  } else {
+    return selectRandomMessage(character.catchphrases.characterWins)
+  }
+}
+
 export function VictoryDialog({
   open,
   winner,
@@ -39,33 +70,19 @@ export function VictoryDialog({
   const margin = Math.abs(blackCount - whiteCount)
   const [victoryMessage, setVictoryMessage] = useState('')
 
-  // Select random message when dialog opens (in effect to comply with React 19 purity rules)
-  // Math.random() must be called in effect, not during render, to maintain purity
-  // setState in effect is intentional here - we're responding to dialog opening
+  // Select random message when dialog opens
+  // Using useEffect with a ref to track previous open state ensures we only
+  // generate a new random message when the dialog transitions from closed to open.
+  // This is an intentional setState in effect - we're responding to a state transition
+  // (dialog opening) to initialize derived state that requires randomization.
+  const prevOpenRef = useRef(false)
   useEffect(() => {
-    if (open) {
-      if (isDraw) {
-        const drawMessages = [
-          `It's a perfect tie! Both you and ${character.name} are equally matched!`,
-          `A draw in Othello? ${character.name} is impressed with your strategic balance!`,
-          'The discs have spoken: Neither side prevails. Rematch?',
-          `Tied at the buzzer! ${character.name} wants a rematch to settle this!`,
-          '32-32? This is like chess... but with discs. Well played!',
-        ]
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setVictoryMessage(drawMessages[Math.floor(Math.random() * drawMessages.length)])
-      } else if (winner === 1) {
-        // Player won - use character's playerWins catchphrases
-        const messages = character.catchphrases.playerWins
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setVictoryMessage(messages[Math.floor(Math.random() * messages.length)])
-      } else {
-        // Character won - use character's characterWins catchphrases
-        const messages = character.catchphrases.characterWins
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setVictoryMessage(messages[Math.floor(Math.random() * messages.length)])
-      }
+    if (open && !prevOpenRef.current) {
+      // Dialog just opened - select a new random message
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: initialize random message on dialog open
+      setVictoryMessage(getVictoryMessage(isDraw, winner, character))
     }
+    prevOpenRef.current = open
   }, [open, isDraw, winner, character])
 
   return (
@@ -172,10 +189,10 @@ export function VictoryDialog({
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button onClick={onPlayAgain} className="w-full sm:w-auto">
+          <Button onClick={onPlayAgain} className="w-full sm:w-auto" aria-label="Start a new game">
             Play Again
           </Button>
-          <Button onClick={onClose} variant="outline" className="w-full sm:w-auto">
+          <Button onClick={onClose} variant="outline" className="w-full sm:w-auto" aria-label="Close results dialog">
             Close
           </Button>
         </DialogFooter>

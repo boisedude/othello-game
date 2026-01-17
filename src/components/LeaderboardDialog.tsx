@@ -127,6 +127,7 @@ export function LeaderboardDialog({
                   variant="destructive"
                   onClick={handleResetStats}
                   className="h-8"
+                  aria-label="Confirm reset all statistics"
                 >
                   Confirm
                 </Button>
@@ -135,6 +136,7 @@ export function LeaderboardDialog({
                   variant="outline"
                   onClick={() => setShowResetConfirm(false)}
                   className="h-8"
+                  aria-label="Cancel reset"
                 >
                   Cancel
                 </Button>
@@ -147,10 +149,11 @@ export function LeaderboardDialog({
                 onClick={() => setShowResetConfirm(true)}
                 size="sm"
                 className="w-full sm:w-auto"
+                aria-label="Reset all statistics"
               >
                 Reset Stats
               </Button>
-              <Button onClick={onClose} variant="outline" className="w-full sm:w-auto">
+              <Button onClick={onClose} variant="outline" className="w-full sm:w-auto" aria-label="Close leaderboard">
                 Close
               </Button>
             </>

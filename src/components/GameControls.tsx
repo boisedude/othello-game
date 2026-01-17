@@ -60,16 +60,16 @@ export function GameControls({
           </div>
         )}
 
-        <Button onClick={onNewGame} disabled={disabled} variant="default">
+        <Button onClick={onNewGame} disabled={disabled} variant="default" aria-label="Start a new game">
           New Game
         </Button>
 
-        <Button onClick={onShowLeaderboard} disabled={disabled} variant="outline">
+        <Button onClick={onShowLeaderboard} disabled={disabled} variant="outline" aria-label="View your statistics">
           📊 Stats
         </Button>
 
         {onShowHelp && (
-          <Button onClick={onShowHelp} disabled={disabled} variant="outline">
+          <Button onClick={onShowHelp} disabled={disabled} variant="outline" aria-label="How to play Othello">
             ❓ How to Play
           </Button>
         )}

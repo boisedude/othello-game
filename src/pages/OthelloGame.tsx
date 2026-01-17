@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { ANIMATION_TIMING } from '@/types/othello.types'
 import { Board } from '@/components/Board'
 import { GameControls } from '@/components/GameControls'
 import { VictoryDialog } from '@/components/VictoryDialog'
@@ -43,7 +44,7 @@ export function OthelloGame() {
 
       // Play flip sound after a brief delay
       if (lastFlippedDiscs.length > 0) {
-        setTimeout(() => playDiscFlip(), 150)
+        setTimeout(() => playDiscFlip(), ANIMATION_TIMING.SOUND_FLIP_DELAY)
       }
     }
     prevMoveCountRef.current = gameState.moveHistory.length

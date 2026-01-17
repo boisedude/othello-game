@@ -9,6 +9,41 @@ export type CellValue = Player | null
 // Game board: 8x8 grid
 export const BOARD_SIZE = 8
 
+// AI Configuration Constants
+export const AI_CONFIG = {
+  // Search depths for minimax
+  HARD_SEARCH_DEPTH: 6,
+
+  // Scoring weights for board evaluation
+  CORNER_VALUE: 100,
+  X_SQUARE_PENALTY: 25,  // Penalty when adjacent corner is empty
+  C_SQUARE_PENALTY: 20,  // Penalty when adjacent corner is empty
+  EDGE_VALUE: 5,
+  MOBILITY_WEIGHT: 2,
+  DISC_COUNT_WEIGHT: 1,
+
+  // Win/loss evaluation scores
+  WIN_SCORE: 10000,
+  LOSS_SCORE: -10000,
+
+  // Move ordering priorities
+  CORNER_PRIORITY: 1000,
+  EDGE_PRIORITY: 500,
+  X_SQUARE_PRIORITY: -100,
+  CENTER_BASE_PRIORITY: 100,
+  CENTER_DISTANCE_MULTIPLIER: 10,
+
+  // Close call threshold (for statistics)
+  CLOSE_CALL_MARGIN: 3,
+} as const
+
+// Animation Timing Constants (in milliseconds)
+export const ANIMATION_TIMING = {
+  AI_MOVE_DELAY: 800,        // Delay before AI makes a move
+  FLIP_ANIMATION_DELAY: 100, // Delay before state update to show flip animation
+  SOUND_FLIP_DELAY: 150,     // Delay before playing flip sound after disc placement
+} as const
+
 // Board state (8x8 grid)
 export type Board = CellValue[][]
 

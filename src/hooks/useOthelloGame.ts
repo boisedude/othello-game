@@ -4,13 +4,11 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import type { GameState, Difficulty, GameMode, ValidMove } from '@/types/othello.types'
+import type { GameState, Difficulty, GameMode } from '@/types/othello.types'
+import { ANIMATION_TIMING } from '@/types/othello.types'
 import { createInitialGameState } from '@/lib/gameStateHelper'
 import { makeMove, isValidMove } from '@/lib/othelloRules'
 import { getAIMove } from '@/lib/aiStrategies'
-
-const AI_MOVE_DELAY = 800 // ms - Longer delay to appreciate disc flips
-const FLIP_ANIMATION_DELAY = 100 // ms - Delay before state update to show flip animation
 
 export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
   const [gameState, setGameState] = useState<GameState>(() =>
@@ -63,23 +61,23 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
               setGameState(prevState => {
                 try {
                   return makeMove(prevState, aiMove.row, aiMove.col)
-                } catch (error) {
-                  console.error('AI move execution failed:', error)
+                } catch {
+                  // AI move execution failed - return unchanged state
                   return prevState
                 }
               })
               setIsAnimating(false)
               setLastFlippedDiscs([])
               animationTimeoutRef.current = null
-            }, FLIP_ANIMATION_DELAY)
+            }, ANIMATION_TIMING.FLIP_ANIMATION_DELAY)
           }
-        } catch (error) {
-          console.error('AI move failed:', error)
+        } catch {
+          // AI move failed - reset animation state
           setIsAnimating(false)
         } finally {
           aiMoveScheduledRef.current = false
         }
-      }, AI_MOVE_DELAY)
+      }, ANIMATION_TIMING.AI_MOVE_DELAY)
     }
 
     return () => {
@@ -108,7 +106,6 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
       }
 
       if (!isValidMove(gameState.board, row, col, 1)) {
-        console.warn('Invalid move attempted:', { row, col })
         return
       }
 
@@ -123,32 +120,22 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
           setGameState(prevState => {
             try {
               return makeMove(prevState, row, col)
-            } catch (error) {
-              console.error('Move execution failed:', error)
+            } catch {
+              // Move execution failed - return unchanged state
               return prevState
             }
           })
           setIsAnimating(false)
           setLastFlippedDiscs([])
           animationTimeoutRef.current = null
-        }, FLIP_ANIMATION_DELAY)
-      } catch (error) {
-        console.error('Error handling move:', error)
+        }, ANIMATION_TIMING.FLIP_ANIMATION_DELAY)
+      } catch {
+        // Error handling move - reset animation state
         setIsAnimating(false)
         setLastFlippedDiscs([])
       }
     },
     [gameState.board, gameState.status, gameState.currentPlayer, gameState.validMoves, isAnimating]
-  )
-
-  /**
-   * Checks if a move is valid (for hover preview)
-   */
-  const checkValidMove = useCallback(
-    (row: number, col: number): ValidMove | null => {
-      return gameState.validMoves.find(m => m.row === row && m.col === col) || null
-    },
-    [gameState.validMoves]
   )
 
   /**
@@ -190,7 +177,6 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
     isAnimating,
     lastFlippedDiscs,
     handlePlayerMove,
-    checkValidMove,
     startNewGame,
     changeDifficulty,
   }

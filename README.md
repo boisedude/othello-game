@@ -204,8 +204,6 @@ Copyright (c) 2025 M. Cooper
 
 Created by M. Cooper for [www.mcooper.com](https://www.mcooper.com)
 
-Built with assistance from [Claude](https://claude.ai)
-
 **AI Personalities**: Named after the creator's dogs, Coop and Bentley
 
 ---

@@ -53,14 +53,12 @@ function getInitialLeaderboard(): LeaderboardEntry {
       if (isValidLeaderboard(data)) {
         return data
       } else {
-        console.warn('Invalid leaderboard data in localStorage, resetting to defaults')
-        // Clear corrupted data
+        // Invalid leaderboard data - clear corrupted data and reset to defaults
         localStorage.removeItem(STORAGE_KEY)
       }
     }
-  } catch (error) {
-    console.error('Failed to load leaderboard:', error)
-    // Clear corrupted data
+  } catch {
+    // Failed to load leaderboard - clear corrupted data
     try {
       localStorage.removeItem(STORAGE_KEY)
     } catch {
@@ -88,8 +86,8 @@ export function useLeaderboard() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stats))
-    } catch (error) {
-      console.error('Failed to save leaderboard:', error)
+    } catch {
+      // Failed to save leaderboard - localStorage may be full or unavailable
     }
   }, [stats])
 

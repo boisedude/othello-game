@@ -29,8 +29,8 @@ export function useGameAudio() {
         if (AudioContextClass) {
           audioContextRef.current = new AudioContextClass()
         }
-      } catch (error) {
-        console.warn('Web Audio API not supported:', error)
+      } catch {
+        // Web Audio API not supported - audio features will be disabled
       }
     }
 

@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
+import { AI_CONFIG } from '@/types/othello.types'
 
 export interface BentleyStats {
   gamesPlayed: number
@@ -23,8 +24,8 @@ function loadStats(): BentleyStats {
     if (stored) {
       return JSON.parse(stored)
     }
-  } catch (error) {
-    console.error('Failed to load Bentley stats:', error)
+  } catch {
+    // Failed to load Bentley stats - return defaults
   }
 
   return {
@@ -41,8 +42,8 @@ function loadStats(): BentleyStats {
 function saveStats(stats: BentleyStats): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stats))
-  } catch (error) {
-    console.error('Failed to save Bentley stats:', error)
+  } catch {
+    // Failed to save Bentley stats - localStorage may be full or unavailable
   }
 }
 
@@ -71,7 +72,7 @@ export function useBentleyStats() {
       gamesPlayed: prev.gamesPlayed + 1,
       gamesLost: prev.gamesLost + 1,
       totalFlips: prev.totalFlips + totalFlips,
-      closeCalls: margin <= 3 ? prev.closeCalls + 1 : prev.closeCalls,
+      closeCalls: margin <= AI_CONFIG.CLOSE_CALL_MARGIN ? prev.closeCalls + 1 : prev.closeCalls,
     }))
   }, [])
 
