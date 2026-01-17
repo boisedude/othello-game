@@ -28,7 +28,7 @@ export function OthelloGame() {
 
   const { character, changeCharacter } = useCharacterSelection(gameState.difficulty)
   const { recordBentleyWin: recordLocalBentleyWin, recordBentleyLoss: recordLocalBentleyLoss, recordBentleyDraw } = useBentleyStats()
-  const mainSiteBentleyStats = useMainSiteBentleyStats()
+  const { recordBentleyWin: recordMainSiteBentleyWin, recordBentleyLoss: recordMainSiteBentleyLoss } = useMainSiteBentleyStats()
   const { stats, recordWin, recordLoss, recordDraw, updatePlayerName, resetStats } = useLeaderboard()
   const { isMuted, toggleMute, playDiscPlace, playDiscFlip, playVictory, playDefeat, playDraw } =
     useGameAudio()
@@ -76,7 +76,7 @@ export function OthelloGame() {
           // Track Bentley stats if playing on hard
           if (gameState.difficulty === 'hard') {
             recordLocalBentleyWin(margin, totalFlips, isPerfect) // Local stats
-            mainSiteBentleyStats.recordBentleyLoss() // Main site API (player won, Bentley lost)
+            recordMainSiteBentleyLoss() // Main site API (player won, Bentley lost)
           }
         } else if (gameState.winner === 2) {
           // AI wins
@@ -86,7 +86,7 @@ export function OthelloGame() {
           // Track Bentley stats if playing on hard
           if (gameState.difficulty === 'hard') {
             recordLocalBentleyLoss(margin, totalFlips) // Local stats
-            mainSiteBentleyStats.recordBentleyWin() // Main site API (Bentley won)
+            recordMainSiteBentleyWin() // Main site API (Bentley won)
           }
         }
       } else if (gameState.status === 'draw') {
@@ -123,7 +123,8 @@ export function OthelloGame() {
     recordLocalBentleyWin,
     recordLocalBentleyLoss,
     recordBentleyDraw,
-    mainSiteBentleyStats,
+    recordMainSiteBentleyWin,
+    recordMainSiteBentleyLoss,
     setShowVictoryDialog,
   ])
 
@@ -132,10 +133,8 @@ export function OthelloGame() {
     startNewGame()
   }, [startNewGame])
 
-  const handlePlayAgain = useCallback(() => {
-    setShowVictoryDialog(false)
-    startNewGame()
-  }, [startNewGame])
+  // handlePlayAgain is the same as handleNewGame - reuse it
+  const handlePlayAgain = handleNewGame
 
   const handleCellClick = useCallback((row: number, col: number) => {
     if (gameState.currentPlayer === 1 && gameState.status === 'playing' && !isAnimating) {

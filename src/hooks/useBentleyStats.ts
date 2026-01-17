@@ -18,14 +18,56 @@ export interface BentleyStats {
 
 const STORAGE_KEY = 'othello-bentley-stats'
 
+/**
+ * Type guard to validate BentleyStats structure
+ * Protects against corrupted or malicious localStorage data
+ */
+function isValidBentleyStats(data: unknown): data is BentleyStats {
+  if (!data || typeof data !== 'object') {
+    return false
+  }
+
+  const stats = data as Partial<BentleyStats>
+
+  return (
+    typeof stats.gamesPlayed === 'number' &&
+    stats.gamesPlayed >= 0 &&
+    typeof stats.gamesWon === 'number' &&
+    stats.gamesWon >= 0 &&
+    typeof stats.gamesLost === 'number' &&
+    stats.gamesLost >= 0 &&
+    typeof stats.perfectGames === 'number' &&
+    stats.perfectGames >= 0 &&
+    typeof stats.closeCalls === 'number' &&
+    stats.closeCalls >= 0 &&
+    typeof stats.totalFlips === 'number' &&
+    stats.totalFlips >= 0 &&
+    typeof stats.bestMargin === 'number' &&
+    stats.bestMargin >= 0
+  )
+}
+
 function loadStats(): BentleyStats {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
-      return JSON.parse(stored)
+      const data = JSON.parse(stored)
+
+      // Validate data structure before using it
+      if (isValidBentleyStats(data)) {
+        return data
+      } else {
+        // Invalid Bentley stats data - clear corrupted data and reset to defaults
+        localStorage.removeItem(STORAGE_KEY)
+      }
     }
   } catch {
-    // Failed to load Bentley stats - return defaults
+    // Failed to load Bentley stats - clear corrupted data
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // Ignore errors when trying to clear
+    }
   }
 
   return {

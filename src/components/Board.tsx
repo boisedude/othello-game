@@ -92,12 +92,15 @@ export function Board({
       </div>
 
       {/* Hover preview info */}
-      {hoveredCell && isValidMove(hoveredCell.row, hoveredCell.col) && (
-        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-black/75 px-2 py-1 text-xs text-white">
-          {validMoves.find(m => m.row === hoveredCell.row && m.col === hoveredCell.col)?.flipsCount || 0} disc
-          {validMoves.find(m => m.row === hoveredCell.row && m.col === hoveredCell.col)?.flipsCount !== 1 ? 's' : ''} will flip
-        </div>
-      )}
+      {hoveredCell && isValidMove(hoveredCell.row, hoveredCell.col) && (() => {
+        const hoveredMove = validMoves.find(m => m.row === hoveredCell.row && m.col === hoveredCell.col)
+        const flipsCount = hoveredMove?.flipsCount || 0
+        return (
+          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-black/75 px-2 py-1 text-xs text-white">
+            {flipsCount} disc{flipsCount !== 1 ? 's' : ''} will flip
+          </div>
+        )
+      })()}
     </div>
   )
 }
