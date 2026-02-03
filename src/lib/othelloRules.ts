@@ -302,18 +302,3 @@ export function simulateMove(
 ): Board {
   return executeMove(board, row, col, player)
 }
-
-/**
- * Debug function to print board (only in development)
- */
-export function printBoard(board: Board): void {
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
-    console.log('  0 1 2 3 4 5 6 7')
-    board.forEach((row, i) => {
-      const rowStr = row.map((cell) => (cell === 1 ? 'B' : cell === 2 ? 'W' : '.')).join(' ')
-      console.log(`${i} ${rowStr}`)
-    })
-    const { black, white } = countDiscs(board)
-    console.log(`Black: ${black}, White: ${white}`)
-  }
-}

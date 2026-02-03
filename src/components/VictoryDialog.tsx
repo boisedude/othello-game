@@ -14,7 +14,7 @@ import {
 } from './ui/dialog'
 import { Button } from './ui/button'
 import type { Player } from '@/types/othello.types'
-import type { Character } from '../../../shared/characters'
+import type { Character } from '@shared/characters'
 
 interface VictoryDialogProps {
   open: boolean

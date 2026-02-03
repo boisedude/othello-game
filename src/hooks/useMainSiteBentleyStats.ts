@@ -4,45 +4,44 @@
  * This tracks global Bentley stats across all games on the site
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { API_BASE_URL } from '@/types/othello.types'
 
 export interface MainSiteBentleyStats {
-  wins: number;
-  losses: number;
-  total: number;
-  winRate: number;
-  bentleyWinRate: number;
-  date: string;
+  wins: number
+  losses: number
+  total: number
+  winRate: number
+  bentleyWinRate: number
+  date: string
 }
 
-const API_BASE = 'https://www.mcooper.com/api';
-
 export function useMainSiteBentleyStats() {
-  const [stats, setStats] = useState<MainSiteBentleyStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [stats, setStats] = useState<MainSiteBentleyStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchStats = useCallback(async () => {
     // Cancel any pending request
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      abortControllerRef.current.abort()
     }
 
     // Create new AbortController for this request
-    abortControllerRef.current = new AbortController();
+    abortControllerRef.current = new AbortController()
 
     try {
-      setLoading(true);
-      const response = await fetch(`${API_BASE}/bentley-stats.php`, {
-        signal: abortControllerRef.current.signal
-      });
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/bentley-stats.php`, {
+        signal: abortControllerRef.current.signal,
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch stats');
+        throw new Error('Failed to fetch stats')
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (data.success) {
         setStats({
@@ -51,18 +50,18 @@ export function useMainSiteBentleyStats() {
           total: data.total,
           winRate: data.winRate,
           bentleyWinRate: data.bentleyWinRate,
-          date: data.date
-        });
+          date: data.date,
+        })
       } else {
-        throw new Error('Invalid response from API');
+        throw new Error('Invalid response from API')
       }
     } catch (err) {
       // Ignore abort errors - these are expected when component unmounts
       if (err instanceof Error && err.name === 'AbortError') {
-        return;
+        return
       }
 
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : 'Unknown error')
 
       // Set mock data for development/testing
       setStats({
@@ -71,47 +70,47 @@ export function useMainSiteBentleyStats() {
         total: 0,
         winRate: 0,
         bentleyWinRate: 0,
-        date: new Date().toISOString().split('T')[0]
-      });
+        date: new Date().toISOString().split('T')[0],
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchStats();
+    fetchStats()
 
     // Cleanup: abort any pending request on unmount
     return () => {
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+        abortControllerRef.current.abort()
       }
-    };
-  }, [fetchStats]);
+    }
+  }, [fetchStats])
 
   /**
    * Record when Bentley wins (player loses)
    */
   const recordBentleyWin = async () => {
     try {
-      await fetch(`${API_BASE}/bentley-win.php`, { method: 'POST' });
-      await fetchStats(); // Refresh stats
+      await fetch(`${API_BASE_URL}/bentley-win.php`, { method: 'POST' })
+      await fetchStats() // Refresh stats
     } catch {
       // Error recording Bentley win - silently fail for non-critical API call
     }
-  };
+  }
 
   /**
    * Record when Bentley loses (player wins)
    */
   const recordBentleyLoss = async () => {
     try {
-      await fetch(`${API_BASE}/bentley-loss.php`, { method: 'POST' });
-      await fetchStats(); // Refresh stats
+      await fetch(`${API_BASE_URL}/bentley-loss.php`, { method: 'POST' })
+      await fetchStats() // Refresh stats
     } catch {
       // Error recording Bentley loss - silently fail for non-critical API call
     }
-  };
+  }
 
   return {
     stats,
@@ -119,6 +118,6 @@ export function useMainSiteBentleyStats() {
     error,
     recordBentleyWin, // Call when Bentley wins (player loses)
     recordBentleyLoss, // Call when Bentley loses (player wins)
-    refresh: fetchStats
-  };
+    refresh: fetchStats,
+  }
 }

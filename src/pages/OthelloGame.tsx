@@ -4,17 +4,19 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ANIMATION_TIMING } from '@/types/othello.types'
+import { ANIMATION_TIMING, ARCADE_URL } from '@/types/othello.types'
 import { Board } from '@/components/Board'
 import { GameControls } from '@/components/GameControls'
 import { VictoryDialog } from '@/components/VictoryDialog'
 import { LeaderboardDialog } from '@/components/LeaderboardDialog'
+import { Tutorial } from '@/components/Tutorial'
 import { useOthelloGame } from '@/hooks/useOthelloGame'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { useGameAudio } from '@/hooks/useGameAudio'
 import { useCharacterSelection } from '@/hooks/useCharacterSelection'
 import { useBentleyStats } from '@/hooks/useBentleyStats'
 import { useMainSiteBentleyStats } from '@/hooks/useMainSiteBentleyStats'
+import { STORAGE_KEYS } from '@/lib/storageKeys'
 
 export function OthelloGame() {
   const {
@@ -24,6 +26,8 @@ export function OthelloGame() {
     handlePlayerMove,
     startNewGame,
     changeDifficulty,
+    undoMove,
+    canUndo,
   } = useOthelloGame()
 
   const { character, changeCharacter } = useCharacterSelection(gameState.difficulty)
@@ -35,6 +39,10 @@ export function OthelloGame() {
 
   const [showVictoryDialog, setShowVictoryDialog] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
+  // Show tutorial automatically for first-time users (lazy initialization)
+  const [showTutorial, setShowTutorial] = useState(() => {
+    return localStorage.getItem(STORAGE_KEYS.TUTORIAL_COMPLETED) !== 'true'
+  })
 
   // Play sound when moves are made
   const prevMoveCountRef = useRef(gameState.moveHistory.length)
@@ -142,6 +150,15 @@ export function OthelloGame() {
     }
   }, [gameState.currentPlayer, gameState.status, isAnimating, handlePlayerMove])
 
+  const handleShowTutorial = useCallback(() => {
+    setShowTutorial(true)
+  }, [])
+
+  // Tutorial completion is handled by the Tutorial component (stores in localStorage)
+  const handleTutorialComplete = useCallback(() => {
+    // No-op - the Tutorial component handles localStorage
+  }, [])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -158,19 +175,27 @@ export function OthelloGame() {
         case 'm':
           toggleMute()
           break
+        case 'h':
+          setShowTutorial(true)
+          break
+        case 'u':
+          if (canUndo) {
+            undoMove()
+          }
+          break
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [handleNewGame, toggleMute])
+  }, [handleNewGame, toggleMute, canUndo, undoMove])
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
       {/* Return to Arcade Button - Fixed position */}
       <div className="fixed left-4 top-4 z-10">
         <a
-          href="https://www.mcooper.com/arcade"
+          href={ARCADE_URL}
           className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl"
         >
           <svg
@@ -198,7 +223,7 @@ export function OthelloGame() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-green-400">Othello</h1>
-            <p className="text-sm text-green-300/70">Challenge {character.name} • Can you beat {character.id === 'bentley' ? 'him' : character.id === 'bella' ? 'her' : 'him'}?</p>
+            <p className="text-sm text-green-300">Challenge {character.name} • Can you beat {character.id === 'bentley' ? 'him' : character.id === 'bella' ? 'her' : 'him'}?</p>
           </div>
         </div>
       </header>
@@ -214,6 +239,8 @@ export function OthelloGame() {
             lastFlippedDiscs={lastFlippedDiscs}
             onCellClick={handleCellClick}
             disabled={isAnimating || gameState.status !== 'playing'}
+            gameStatus={gameState.status}
+            winner={gameState.winner}
           />
 
           {/* Controls */}
@@ -225,6 +252,9 @@ export function OthelloGame() {
             }}
             onNewGame={handleNewGame}
             onShowLeaderboard={() => setShowLeaderboard(true)}
+            onShowHelp={handleShowTutorial}
+            onUndo={undoMove}
+            canUndo={canUndo}
             disabled={isAnimating}
             gameMode={gameState.mode}
             currentPlayer={gameState.currentPlayer}
@@ -245,8 +275,8 @@ export function OthelloGame() {
           </div>
 
           {/* Keyboard shortcuts hint */}
-          <div className="text-center text-xs text-gray-500">
-            <p>Keyboard: N = New Game • L = Leaderboard • M = Mute/Unmute</p>
+          <div className="text-center text-xs text-gray-400">
+            <p>Keyboard: N = New Game • U = Undo • L = Leaderboard • H = How to Play • M = Mute/Unmute</p>
           </div>
         </div>
       </main>
@@ -288,6 +318,13 @@ export function OthelloGame() {
         stats={stats}
         onResetStats={resetStats}
         onUpdatePlayerName={updatePlayerName}
+      />
+
+      {/* Tutorial Dialog */}
+      <Tutorial
+        open={showTutorial}
+        onClose={() => setShowTutorial(false)}
+        onComplete={handleTutorialComplete}
       />
     </div>
   )

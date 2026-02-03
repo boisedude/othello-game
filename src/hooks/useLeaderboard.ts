@@ -5,8 +5,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { LeaderboardEntry } from '@/types/othello.types'
+import { STORAGE_KEYS } from '@/lib/storageKeys'
 
-const STORAGE_KEY = 'othello-leaderboard'
+const STORAGE_KEY = STORAGE_KEYS.LEADERBOARD
 const DEFAULT_PLAYER_NAME = 'Player'
 
 /**

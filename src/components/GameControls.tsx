@@ -1,12 +1,12 @@
 /**
  * Game Controls Component
- * Controls for difficulty selection, new game, leaderboard, etc.
+ * Controls for difficulty selection, new game, undo, leaderboard, etc.
  */
 
 import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import type { Difficulty, GameMode } from '@/types/othello.types'
-import type { Character } from '../../../shared/characters'
+import type { Character } from '@shared/characters'
 
 interface GameControlsProps {
   difficulty: Difficulty
@@ -14,6 +14,8 @@ interface GameControlsProps {
   onNewGame: () => void
   onShowLeaderboard: () => void
   onShowHelp?: () => void
+  onUndo?: () => void
+  canUndo?: boolean
   disabled?: boolean
   gameMode: GameMode
   currentPlayer: 1 | 2
@@ -28,6 +30,8 @@ export function GameControls({
   onNewGame,
   onShowLeaderboard,
   onShowHelp,
+  onUndo,
+  canUndo = false,
   disabled = false,
   gameMode,
   currentPlayer,
@@ -63,6 +67,17 @@ export function GameControls({
         <Button onClick={onNewGame} disabled={disabled} variant="default" aria-label="Start a new game">
           New Game
         </Button>
+
+        {onUndo && (
+          <Button
+            onClick={onUndo}
+            disabled={disabled || !canUndo}
+            variant="outline"
+            aria-label="Undo last move (U)"
+          >
+            Undo (U)
+          </Button>
+        )}
 
         <Button onClick={onShowLeaderboard} disabled={disabled} variant="outline" aria-label="View your statistics">
           📊 Stats

@@ -177,7 +177,7 @@ function StatRow({
     <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
       <span className="text-sm font-medium">{label}</span>
       <span
-        className={`text-lg font-bold ${
+        className={`flex items-center gap-1 text-lg font-bold ${
           highlight === 'green'
             ? 'text-green-600'
             : highlight === 'red'
@@ -185,6 +185,17 @@ function StatRow({
               : ''
         }`}
       >
+        {highlight === 'green' && (
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        )}
+        {highlight === 'red' && (
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        )}
         {value}
       </span>
     </div>

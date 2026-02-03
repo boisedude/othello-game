@@ -13,6 +13,13 @@ import {
   getOpponent,
 } from './othelloRules'
 import { BOARD_SIZE, AI_CONFIG } from '@/types/othello.types'
+import {
+  CORNERS,
+  CORNER_POSITIONS,
+  X_SQUARES,
+  X_SQUARE_POSITIONS,
+  C_SQUARE_POSITIONS,
+} from './boardPositions'
 
 /**
  * Gets the AI's move based on difficulty level
@@ -66,35 +73,21 @@ function getGreedyMove(
   validMoves: ValidMove[]
 ): { row: number; col: number } {
   // 1. CORNERS - Highest priority (can never be flipped!)
-  const corners = [
-    { row: 0, col: 0 },
-    { row: 0, col: BOARD_SIZE - 1 },
-    { row: BOARD_SIZE - 1, col: 0 },
-    { row: BOARD_SIZE - 1, col: BOARD_SIZE - 1 },
-  ]
-
-  for (const corner of corners) {
+  for (const corner of CORNERS) {
     const move = validMoves.find(m => m.row === corner.row && m.col === corner.col)
     if (move) return { row: move.row, col: move.col }
   }
 
   // 2. Avoid X-squares (diagonally adjacent to empty corners)
   // These are dangerous early game
-  const xSquares = [
-    { row: 1, col: 1, corner: { row: 0, col: 0 } },
-    { row: 1, col: BOARD_SIZE - 2, corner: { row: 0, col: BOARD_SIZE - 1 } },
-    { row: BOARD_SIZE - 2, col: 1, corner: { row: BOARD_SIZE - 1, col: 0 } },
-    { row: BOARD_SIZE - 2, col: BOARD_SIZE - 2, corner: { row: BOARD_SIZE - 1, col: BOARD_SIZE - 1 } },
-  ]
-
-  const safeXSquares = xSquares.filter(xs =>
+  const safeXSquares = X_SQUARES.filter(xs =>
     board[xs.corner.row][xs.corner.col] !== null // Corner is occupied, so X-square is safe
   )
 
   const nonXSquareMoves = validMoves.filter(move => {
-    const isXSquare = xSquares.some(xs => xs.row === move.row && xs.col === move.col)
+    const isMoveXSquare = X_SQUARES.some(xs => xs.row === move.row && xs.col === move.col)
     const isSafeXSquare = safeXSquares.some(xs => xs.row === move.row && xs.col === move.col)
-    return !isXSquare || isSafeXSquare
+    return !isMoveXSquare || isSafeXSquare
   })
 
   const movesToConsider = nonXSquareMoves.length > 0 ? nonXSquareMoves : validMoves
@@ -103,7 +96,7 @@ function getGreedyMove(
   const edgeMoves = movesToConsider.filter(
     m =>
       (m.row === 0 || m.row === BOARD_SIZE - 1 || m.col === 0 || m.col === BOARD_SIZE - 1) &&
-      !corners.some(c => c.row === m.row && c.col === m.col)
+      !CORNERS.some(c => c.row === m.row && c.col === m.col)
   )
 
   if (edgeMoves.length > 0) {
@@ -220,25 +213,13 @@ function evaluateBoard(board: Board, player: Player): number {
   let score = 0
 
   // 1. CORNERS (highest value positions)
-  const corners = [
-    [0, 0],
-    [0, BOARD_SIZE - 1],
-    [BOARD_SIZE - 1, 0],
-    [BOARD_SIZE - 1, BOARD_SIZE - 1],
-  ]
-  for (const [row, col] of corners) {
+  for (const [row, col] of CORNER_POSITIONS) {
     if (board[row][col] === player) score += AI_CONFIG.CORNER_VALUE
     else if (board[row][col] === opponent) score -= AI_CONFIG.CORNER_VALUE
   }
 
   // 2. X-SQUARES (cells diagonally adjacent to corners - penalty if corner is empty)
-  const xSquares = [
-    { pos: [1, 1], corner: [0, 0] },
-    { pos: [1, BOARD_SIZE - 2], corner: [0, BOARD_SIZE - 1] },
-    { pos: [BOARD_SIZE - 2, 1], corner: [BOARD_SIZE - 1, 0] },
-    { pos: [BOARD_SIZE - 2, BOARD_SIZE - 2], corner: [BOARD_SIZE - 1, BOARD_SIZE - 1] },
-  ]
-  for (const xs of xSquares) {
+  for (const xs of X_SQUARE_POSITIONS) {
     const [xRow, xCol] = xs.pos
     const [cRow, cCol] = xs.corner
     if (board[cRow][cCol] === null) {
@@ -249,17 +230,7 @@ function evaluateBoard(board: Board, player: Player): number {
   }
 
   // 3. C-SQUARES (cells adjacent to corners - penalty if corner is empty)
-  const cSquares = [
-    { pos: [0, 1], corner: [0, 0] },
-    { pos: [1, 0], corner: [0, 0] },
-    { pos: [0, BOARD_SIZE - 2], corner: [0, BOARD_SIZE - 1] },
-    { pos: [1, BOARD_SIZE - 1], corner: [0, BOARD_SIZE - 1] },
-    { pos: [BOARD_SIZE - 2, 0], corner: [BOARD_SIZE - 1, 0] },
-    { pos: [BOARD_SIZE - 1, 1], corner: [BOARD_SIZE - 1, 0] },
-    { pos: [BOARD_SIZE - 1, BOARD_SIZE - 2], corner: [BOARD_SIZE - 1, BOARD_SIZE - 1] },
-    { pos: [BOARD_SIZE - 2, BOARD_SIZE - 1], corner: [BOARD_SIZE - 1, BOARD_SIZE - 1] },
-  ]
-  for (const cs of cSquares) {
+  for (const cs of C_SQUARE_POSITIONS) {
     const [cRow, cCol] = cs.pos
     const [cornerRow, cornerCol] = cs.corner
     if (board[cornerRow][cornerCol] === null) {
@@ -307,12 +278,7 @@ function orderMovesByPreference(moves: ValidMove[], board: Board): ValidMove[] {
     const { row, col } = move
 
     // Corners (highest priority)
-    if (
-      (row === 0 && col === 0) ||
-      (row === 0 && col === BOARD_SIZE - 1) ||
-      (row === BOARD_SIZE - 1 && col === 0) ||
-      (row === BOARD_SIZE - 1 && col === BOARD_SIZE - 1)
-    ) {
+    if (CORNERS.some(c => c.row === row && c.col === col)) {
       return AI_CONFIG.CORNER_PRIORITY
     }
 
@@ -322,13 +288,8 @@ function orderMovesByPreference(moves: ValidMove[], board: Board): ValidMove[] {
     }
 
     // X-squares (lowest priority unless corner is taken)
-    const isXSquare =
-      (row === 1 && col === 1 && board[0][0] === null) ||
-      (row === 1 && col === BOARD_SIZE - 2 && board[0][BOARD_SIZE - 1] === null) ||
-      (row === BOARD_SIZE - 2 && col === 1 && board[BOARD_SIZE - 1][0] === null) ||
-      (row === BOARD_SIZE - 2 && col === BOARD_SIZE - 2 && board[BOARD_SIZE - 1][BOARD_SIZE - 1] === null)
-
-    if (isXSquare) {
+    const xSquareMatch = X_SQUARES.find(xs => xs.row === row && xs.col === col)
+    if (xSquareMatch && board[xSquareMatch.corner.row][xSquareMatch.corner.col] === null) {
       return AI_CONFIG.X_SQUARE_PRIORITY
     }
 

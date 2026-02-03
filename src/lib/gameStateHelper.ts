@@ -27,5 +27,6 @@ export function createInitialGameState(
     blackCount: black,
     whiteCount: white,
     validMoves: getValidMoves(board, 1),
+    undoHistory: [], // Empty undo history for new game
   }
 }

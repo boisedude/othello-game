@@ -5,8 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-
-type SoundEffect = 'discFlip' | 'discPlace' | 'victory' | 'defeat' | 'draw' | 'click' | 'hover'
+import { STORAGE_KEYS } from '@/lib/storageKeys'
 
 // Type declaration for webkit compatibility
 type WebkitWindow = Window &
@@ -16,7 +15,7 @@ type WebkitWindow = Window &
 
 export function useGameAudio() {
   const [isMuted, setIsMuted] = useState(() => {
-    return localStorage.getItem('othello-audio-muted') === 'true'
+    return localStorage.getItem(STORAGE_KEYS.AUDIO_MUTED) === 'true'
   })
 
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -45,7 +44,7 @@ export function useGameAudio() {
   const toggleMute = useCallback(() => {
     setIsMuted(prev => {
       const newValue = !prev
-      localStorage.setItem('othello-audio-muted', String(newValue))
+      localStorage.setItem(STORAGE_KEYS.AUDIO_MUTED, String(newValue))
       return newValue
     })
   }, [])
@@ -187,93 +186,13 @@ export function useGameAudio() {
     })
   }, [isMuted])
 
-  // Play click sound (UI feedback)
-  const playClick = useCallback(() => {
-    if (isMuted || !audioContextRef.current) return
-
-    const ctx = audioContextRef.current
-    const now = ctx.currentTime
-
-    const osc = ctx.createOscillator()
-    const gainNode = ctx.createGain()
-
-    osc.connect(gainNode)
-    gainNode.connect(ctx.destination)
-
-    osc.frequency.setValueAtTime(800, now)
-    osc.frequency.exponentialRampToValueAtTime(400, now + 0.05)
-
-    gainNode.gain.setValueAtTime(0.1, now)
-    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05)
-
-    osc.type = 'square'
-    osc.start(now)
-    osc.stop(now + 0.05)
-  }, [isMuted])
-
-  // Play hover sound (subtle UI feedback)
-  const playHover = useCallback(() => {
-    if (isMuted || !audioContextRef.current) return
-
-    const ctx = audioContextRef.current
-    const now = ctx.currentTime
-
-    const osc = ctx.createOscillator()
-    const gainNode = ctx.createGain()
-
-    osc.connect(gainNode)
-    gainNode.connect(ctx.destination)
-
-    osc.frequency.setValueAtTime(600, now)
-
-    gainNode.gain.setValueAtTime(0.05, now)
-    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.03)
-
-    osc.type = 'sine'
-    osc.start(now)
-    osc.stop(now + 0.03)
-  }, [isMuted])
-
-  // Play any sound effect
-  const playSound = useCallback(
-    (effect: SoundEffect) => {
-      switch (effect) {
-        case 'discFlip':
-          playDiscFlip()
-          break
-        case 'discPlace':
-          playDiscPlace()
-          break
-        case 'victory':
-          playVictory()
-          break
-        case 'defeat':
-          playDefeat()
-          break
-        case 'draw':
-          playDraw()
-          break
-        case 'click':
-          playClick()
-          break
-        case 'hover':
-          playHover()
-          break
-      }
-    },
-    [playDiscFlip, playDiscPlace, playVictory, playDefeat, playDraw, playClick, playHover]
-  )
-
   return {
     isMuted,
     toggleMute,
-    playSound,
     playDiscFlip,
     playDiscPlace,
     playVictory,
     playDefeat,
     playDraw,
-    playClick,
-    playHover,
   }
 }

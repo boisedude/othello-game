@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { AI_CONFIG } from '@/types/othello.types'
+import { STORAGE_KEYS } from '@/lib/storageKeys'
 
 export interface BentleyStats {
   gamesPlayed: number
@@ -16,7 +17,7 @@ export interface BentleyStats {
   bestMargin: number // Best winning margin against Bentley
 }
 
-const STORAGE_KEY = 'othello-bentley-stats'
+const STORAGE_KEY = STORAGE_KEYS.BENTLEY_STATS
 
 /**
  * Type guard to validate BentleyStats structure

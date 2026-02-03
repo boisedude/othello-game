@@ -9,6 +9,10 @@ export type CellValue = Player | null
 // Game board: 8x8 grid
 export const BOARD_SIZE = 8
 
+// External URLs
+export const ARCADE_URL = 'https://www.mcooper.com/arcade'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://www.mcooper.com/api'
+
 // AI Configuration Constants
 export const AI_CONFIG = {
   // Search depths for minimax
@@ -40,8 +44,11 @@ export const AI_CONFIG = {
 // Animation Timing Constants (in milliseconds)
 export const ANIMATION_TIMING = {
   AI_MOVE_DELAY: 800,        // Delay before AI makes a move
-  FLIP_ANIMATION_DELAY: 100, // Delay before state update to show flip animation
-  SOUND_FLIP_DELAY: 150,     // Delay before playing flip sound after disc placement
+  FLIP_ANIMATION_DELAY: 150, // Delay before state update to show flip animation
+  SOUND_FLIP_DELAY: 200,     // Delay before playing flip sound after disc placement
+  CHAIN_FLIP_INTERVAL: 80,   // Delay between each disc flip in chain animation
+  PLACE_ANIMATION: 400,      // Duration of disc placement animation
+  CAPTURE_CELEBRATION: 600,  // Duration of capture celebration effect
 } as const
 
 // Board state (8x8 grid)
@@ -77,6 +84,18 @@ export interface ValidMove {
   flippedPositions: Array<{ row: number; col: number }>
 }
 
+// Undo state snapshot for reverting moves
+export interface UndoState {
+  board: Board
+  currentPlayer: Player
+  status: GameStatus
+  blackCount: number
+  whiteCount: number
+  validMoves: ValidMove[]
+  lastMove?: Move
+  moveHistory: Move[]
+}
+
 // Complete game state
 export interface GameState {
   board: Board
@@ -90,6 +109,7 @@ export interface GameState {
   blackCount: number // Player's disc count
   whiteCount: number // Coop's disc count
   validMoves: ValidMove[] // Valid moves for current player
+  undoHistory: UndoState[] // Stack of undo states for reverting moves
 }
 
 // Leaderboard entry
