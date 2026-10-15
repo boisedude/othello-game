@@ -1,6 +1,6 @@
 /**
  * Othello Game Page
- * Main game interface for Othello - Play Coop!
+ * Main game interface for Othello
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -10,12 +10,16 @@ import { GameControls } from '@/components/GameControls'
 import { VictoryDialog } from '@/components/VictoryDialog'
 import { LeaderboardDialog } from '@/components/LeaderboardDialog'
 import { Tutorial } from '@/components/Tutorial'
+import { OpponentChip } from '@/components/OpponentChip'
+import { Button } from '@/components/ui/button'
+import { ArrowLeftIcon, VolumeIcon, VolumeOffIcon, HelpIcon } from '@shared/icons'
 import { useOthelloGame } from '@/hooks/useOthelloGame'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { useGameAudio } from '@/hooks/useGameAudio'
 import { useCharacterSelection } from '@/hooks/useCharacterSelection'
 import { useBentleyStats } from '@/hooks/useBentleyStats'
-import { useMainSiteBentleyStats } from '@/hooks/useMainSiteBentleyStats'
+import { getInitialDifficulty, hasCharacterParam } from '@/lib/characterParam'
+import { recordArcadeResult } from '@/lib/arcadeResult'
 import { STORAGE_KEYS } from '@/lib/storageKeys'
 
 export function OthelloGame() {
@@ -28,11 +32,10 @@ export function OthelloGame() {
     changeDifficulty,
     undoMove,
     canUndo,
-  } = useOthelloGame()
+  } = useOthelloGame(getInitialDifficulty())
 
   const { character, changeCharacter } = useCharacterSelection(gameState.difficulty)
   const { recordBentleyWin: recordLocalBentleyWin, recordBentleyLoss: recordLocalBentleyLoss, recordBentleyDraw } = useBentleyStats()
-  const { recordBentleyWin: recordMainSiteBentleyWin, recordBentleyLoss: recordMainSiteBentleyLoss } = useMainSiteBentleyStats()
   const { stats, recordWin, recordLoss, recordDraw, updatePlayerName, resetStats } = useLeaderboard()
   const { isMuted, toggleMute, playDiscPlace, playDiscFlip, playVictory, playDefeat, playDraw } =
     useGameAudio()
@@ -41,7 +44,13 @@ export function OthelloGame() {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   // Show tutorial automatically for first-time users (lazy initialization)
   const [showTutorial, setShowTutorial] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.TUTORIAL_COMPLETED) !== 'true'
+    // Never auto-open when the arcade launched us with a character
+    if (hasCharacterParam()) return false
+    try {
+      return localStorage.getItem(STORAGE_KEYS.TUTORIAL_COMPLETED) !== 'true'
+    } catch {
+      return true
+    }
   })
 
   // Play sound when moves are made
@@ -75,6 +84,9 @@ export function OthelloGame() {
         (gameState.winner === 1 && gameState.whiteCount === 0) ||
         (gameState.winner === 2 && gameState.blackCount === 0)
 
+      // Arcade-wide record: once per game, guarded by the prevStatusRef check
+      recordArcadeResult(gameState.mode, gameState.difficulty, gameState.status, gameState.winner)
+
       if (gameState.status === 'won') {
         if (gameState.winner === 1) {
           // Player wins
@@ -84,7 +96,6 @@ export function OthelloGame() {
           // Track Bentley stats if playing on hard
           if (gameState.difficulty === 'hard') {
             recordLocalBentleyWin(margin, totalFlips, isPerfect) // Local stats
-            recordMainSiteBentleyLoss() // Main site API (player won, Bentley lost)
           }
         } else if (gameState.winner === 2) {
           // AI wins
@@ -94,7 +105,6 @@ export function OthelloGame() {
           // Track Bentley stats if playing on hard
           if (gameState.difficulty === 'hard') {
             recordLocalBentleyLoss(margin, totalFlips) // Local stats
-            recordMainSiteBentleyWin() // Main site API (Bentley won)
           }
         }
       } else if (gameState.status === 'draw') {
@@ -131,8 +141,7 @@ export function OthelloGame() {
     recordLocalBentleyWin,
     recordLocalBentleyLoss,
     recordBentleyDraw,
-    recordMainSiteBentleyWin,
-    recordMainSiteBentleyLoss,
+    gameState.mode,
     setShowVictoryDialog,
   ])
 
@@ -190,48 +199,98 @@ export function OthelloGame() {
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [handleNewGame, toggleMute, canUndo, undoMove])
 
-  return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
-      {/* Return to Arcade Button - Fixed position */}
-      <div className="fixed left-4 top-4 z-10">
-        <a
-          href={ARCADE_URL}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Return to Arcade
-        </a>
-      </div>
+  const opponent = character.name
+  const turnText =
+    gameState.status === 'won'
+      ? gameState.winner === 1
+        ? 'You won'
+        : `${opponent} won`
+      : gameState.status === 'draw'
+        ? 'Draw'
+        : gameState.currentPlayer === 1
+          ? 'Your turn'
+          : `${opponent} is thinking`
+  const turnActive =
+    gameState.status !== 'playing' ? 'over' : gameState.currentPlayer === 1 ? 'you' : 'opponent'
 
-      {/* Header */}
-      <header className="border-b border-green-800/30 bg-gray-800/50 py-4 text-center">
-        <div className="flex items-center justify-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-green-700 text-2xl">
-            ⚫⚪
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-green-400">Othello</h1>
-            <p className="text-sm text-green-300">Challenge {character.name} • Can you beat {character.id === 'bentley' ? 'him' : character.id === 'bella' ? 'her' : 'him'}?</p>
-          </div>
+  return (
+    <div className="arcade-page">
+      <a
+        href="#game-board"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:text-foreground"
+      >
+        Skip to game board
+      </a>
+
+      <header className="arcade-topbar">
+        <div className="flex flex-1 items-center">
+          <a
+            href={ARCADE_URL}
+            className="inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeftIcon size={18} />
+            Arcade
+          </a>
+        </div>
+        <h1 className="arcade-display sr-only text-xl sm:not-sr-only">Othello</h1>
+        <div className="flex flex-1 items-center justify-end gap-1">
+          <OpponentChip
+            character={character}
+            difficulty={gameState.difficulty}
+            onDifficultyChange={(newDifficulty) => {
+              changeDifficulty(newDifficulty)
+              changeCharacter(newDifficulty)
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 shrink-0"
+            onClick={toggleMute}
+            aria-label={isMuted ? 'Unmute sound effects' : 'Mute sound effects'}
+          >
+            {isMuted ? <VolumeOffIcon /> : <VolumeIcon />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 shrink-0"
+            onClick={handleShowTutorial}
+            aria-label="How to play"
+          >
+            <HelpIcon />
+          </Button>
         </div>
       </header>
 
-      {/* Main Game Area */}
-      <main className="container mx-auto flex-1 px-4 py-8">
-        <div className="mx-auto max-w-4xl space-y-6">
-          {/* Board */}
+      <main className="arcade-stage">
+        <div className="arcade-score">
+          <div>
+            <strong className="flex items-center gap-2">
+              <span
+                className="inline-block h-4 w-4 rounded-full bg-black ring-1 ring-white/30"
+                aria-hidden="true"
+              />
+              {gameState.blackCount}
+            </strong>
+            You
+          </div>
+          <div className="arcade-turn" data-active={turnActive}>
+            {turnText}
+          </div>
+          <div>
+            <strong className="flex items-center justify-end gap-2">
+              {gameState.whiteCount}
+              <span
+                className="inline-block h-4 w-4 rounded-full bg-white ring-1 ring-white/30"
+                aria-hidden="true"
+              />
+            </strong>
+            {opponent}
+          </div>
+        </div>
+
+        <div id="game-board" className="flex w-full justify-center">
           <Board
             board={gameState.board}
             validMoves={gameState.validMoves}
@@ -242,43 +301,16 @@ export function OthelloGame() {
             gameStatus={gameState.status}
             winner={gameState.winner}
           />
-
-          {/* Controls */}
-          <GameControls
-            difficulty={gameState.difficulty}
-            onDifficultyChange={(newDifficulty) => {
-              changeDifficulty(newDifficulty)
-              changeCharacter(newDifficulty)
-            }}
-            onNewGame={handleNewGame}
-            onShowLeaderboard={() => setShowLeaderboard(true)}
-            onShowHelp={handleShowTutorial}
-            onUndo={undoMove}
-            canUndo={canUndo}
-            disabled={isAnimating}
-            gameMode={gameState.mode}
-            currentPlayer={gameState.currentPlayer}
-            blackCount={gameState.blackCount}
-            whiteCount={gameState.whiteCount}
-            character={character}
-          />
-
-          {/* Audio Toggle */}
-          <div className="text-center">
-            <button
-              onClick={toggleMute}
-              className="rounded-lg bg-gray-700/50 px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-700"
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted ? '🔇 Muted' : '🔊 Sound On'} (M)
-            </button>
-          </div>
-
-          {/* Keyboard shortcuts hint */}
-          <div className="text-center text-xs text-gray-400">
-            <p>Keyboard: N = New Game • U = Undo • L = Leaderboard • H = How to Play • M = Mute/Unmute</p>
-          </div>
         </div>
+
+        <GameControls
+          onNewGame={handleNewGame}
+          onShowLeaderboard={() => setShowLeaderboard(true)}
+          onShowHelp={handleShowTutorial}
+          onUndo={undoMove}
+          canUndo={canUndo}
+          disabled={isAnimating}
+        />
       </main>
 
       {/* Screen Reader Live Region for Accessibility */}
@@ -309,6 +341,7 @@ export function OthelloGame() {
         onPlayAgain={handlePlayAgain}
         onClose={() => setShowVictoryDialog(false)}
         character={character}
+        stats={stats}
       />
 
       {/* Leaderboard Dialog */}
@@ -323,6 +356,7 @@ export function OthelloGame() {
       {/* Tutorial Dialog */}
       <Tutorial
         open={showTutorial}
+        opponentName={opponent}
         onClose={() => setShowTutorial(false)}
         onComplete={handleTutorialComplete}
       />

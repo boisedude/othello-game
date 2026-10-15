@@ -1,6 +1,6 @@
 /**
  * Cell Component
- * Represents a single cell on the Othello board with etched grid lines
+ * Represents a single cell on the Othello board on a hairline grid
  */
 
 import { memo } from 'react'
@@ -61,31 +61,18 @@ export const Cell = memo(function Cell({
       disabled={disabled || !isValidMove}
       className={cn(
         'group relative flex h-full w-full items-center justify-center perspective-800',
-        // Etched/inlaid grid line effect
-        'rounded-[2px] bg-gradient-to-br from-[#1a5f3c] to-[#134830]',
-        'shadow-[inset_1px_1px_2px_rgba(0,0,0,0.4),inset_-1px_-1px_1px_rgba(255,255,255,0.08)]',
-        'border border-[#0f3d28]/60',
-        'transition-all duration-200',
-        'focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800 focus-visible:outline-none',
-        isValidMove && !disabled && 'cursor-pointer hover:bg-[#1f6b42] hover:shadow-[inset_0_0_8px_rgba(144,238,144,0.2)]',
-        disabled && 'cursor-not-allowed',
-        isLastMove && 'ring-2 ring-yellow-400/60 ring-inset'
+        'bg-[#1d6040] transition-colors duration-150',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
+        isValidMove && !disabled && 'cursor-pointer hover:bg-[#22704a]',
+        disabled && 'cursor-default',
+        isLastMove && 'ring-2 ring-inset ring-primary'
       )}
       aria-label={`Cell at row ${row + 1}, column ${col + 1}${player ? ` has ${player === 1 ? 'black' : 'white'} disc` : ''}${isValidMove ? ' - valid move' : ''}`}
     >
-      {/* Valid move indicator - subtle glowing dot */}
+      {/* Valid move hint: a small static dot */}
       {isValidMove && !player && !disabled && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div
-            className={cn(
-              'h-3 w-3 rounded-full',
-              'bg-gradient-to-br from-green-300/60 to-green-400/40',
-              'shadow-[0_0_6px_2px_rgba(134,239,172,0.4)]',
-              'animate-valid-move-pulse',
-              'group-hover:h-4 group-hover:w-4 group-hover:from-green-200/80 group-hover:to-green-300/60',
-              'transition-all duration-150'
-            )}
-          />
+          <div className="h-[18%] w-[18%] rounded-full bg-primary/70" />
         </div>
       )}
 

@@ -21,7 +21,6 @@ export const Disc = memo(function Disc({
   isFlipping = false,
   flipDelayClass = '',
   isNewlyPlaced = false,
-  isWinning = false,
   className,
 }: DiscProps) {
   const id = useId()
@@ -32,9 +31,7 @@ export const Disc = memo(function Disc({
         'relative h-full w-full rounded-full',
         'transition-transform duration-300',
         isFlipping && cn('animate-disc-flip', flipDelayClass),
-        isFlipping && 'animate-capture-celebrate',
         isNewlyPlaced && 'animate-disc-place',
-        isWinning && 'animate-winner-pulse',
         player === 2 && !isFlipping && 'rotate-y-180', // Show white side when not flipping
         className
       )}

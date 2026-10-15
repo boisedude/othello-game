@@ -119,25 +119,39 @@ function getMinimaxMove(
   player: Player,
   validMoves: ValidMove[]
 ): { row: number; col: number } {
-  const depth = AI_CONFIG.HARD_SEARCH_DEPTH
-  let bestMove: { row: number; col: number } | null = null
-  let bestScore = -Infinity
-
-  // Order moves by strategic preference for better pruning
   const orderedMoves = orderMovesByPreference(validMoves, board)
+  let bestMove: { row: number; col: number } = {
+    row: orderedMoves[0].row,
+    col: orderedMoves[0].col,
+  }
+  const deadline = Date.now() + AI_CONFIG.HARD_TIME_LIMIT_MS
 
-  for (const move of orderedMoves) {
-    const newBoard = simulateMove(board, move.row, move.col, player)
-    const score = minimax(newBoard, depth - 1, -Infinity, Infinity, false, player)
-
-    if (score > bestScore) {
-      bestScore = score
-      bestMove = { row: move.row, col: move.col }
+  // Iterative deepening: keep the best move from the last fully searched
+  // depth, so a reply never takes much longer than the time limit.
+  for (let depth = 2; depth <= AI_CONFIG.HARD_SEARCH_DEPTH; depth++) {
+    let depthBest: { row: number; col: number } | null = null
+    let bestScore = -Infinity
+    try {
+      for (const move of orderedMoves) {
+        const newBoard = simulateMove(board, move.row, move.col, player)
+        const score = minimax(newBoard, depth - 1, -Infinity, Infinity, false, player, deadline)
+        if (score > bestScore) {
+          bestScore = score
+          depthBest = { row: move.row, col: move.col }
+        }
+      }
+    } catch (e) {
+      if (e instanceof SearchTimeout) break
+      throw e
     }
+    if (depthBest) bestMove = depthBest
+    if (Date.now() >= deadline) break
   }
 
-  return bestMove || { row: validMoves[0].row, col: validMoves[0].col }
+  return bestMove
 }
+
+class SearchTimeout extends Error {}
 
 /**
  * Minimax algorithm with alpha-beta pruning
@@ -148,8 +162,10 @@ function minimax(
   alpha: number,
   beta: number,
   isMaximizing: boolean,
-  aiPlayer: Player
+  aiPlayer: Player,
+  deadline: number = Infinity
 ): number {
+  if (deadline !== Infinity && Date.now() > deadline) throw new SearchTimeout()
   const opponent = getOpponent(aiPlayer)
 
   // Terminal states
@@ -170,7 +186,7 @@ function minimax(
 
   // If current player has no moves, pass turn to opponent
   if (validMoves.length === 0) {
-    return minimax(board, depth - 1, alpha, beta, !isMaximizing, aiPlayer)
+    return minimax(board, depth - 1, alpha, beta, !isMaximizing, aiPlayer, deadline)
   }
 
   const orderedMoves = orderMovesByPreference(validMoves, board)
@@ -180,7 +196,7 @@ function minimax(
 
     for (const move of orderedMoves) {
       const newBoard = simulateMove(board, move.row, move.col, aiPlayer)
-      const score = minimax(newBoard, depth - 1, alpha, beta, false, aiPlayer)
+      const score = minimax(newBoard, depth - 1, alpha, beta, false, aiPlayer, deadline)
       maxScore = Math.max(maxScore, score)
       alpha = Math.max(alpha, score)
 
@@ -193,7 +209,7 @@ function minimax(
 
     for (const move of orderedMoves) {
       const newBoard = simulateMove(board, move.row, move.col, opponent)
-      const score = minimax(newBoard, depth - 1, alpha, beta, true, aiPlayer)
+      const score = minimax(newBoard, depth - 1, alpha, beta, true, aiPlayer, deadline)
       minScore = Math.min(minScore, score)
       beta = Math.min(beta, score)
 

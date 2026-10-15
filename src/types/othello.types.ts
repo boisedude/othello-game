@@ -17,6 +17,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://www.mc
 export const AI_CONFIG = {
   // Search depths for minimax
   HARD_SEARCH_DEPTH: 6,
+  HARD_TIME_LIMIT_MS: 1500, // Cap on a hard-AI reply
 
   // Scoring weights for board evaluation
   CORNER_VALUE: 100,
