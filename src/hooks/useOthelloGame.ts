@@ -8,7 +8,7 @@ import type { GameState, Difficulty, GameMode, UndoState } from '@/types/othello
 import { ANIMATION_TIMING } from '@/types/othello.types'
 import { createInitialGameState } from '@/lib/gameStateHelper'
 import { makeMove, isValidMove } from '@/lib/othelloRules'
-import { getAIMove } from '@/lib/aiStrategies'
+import { requestAIMove } from '@/lib/aiClient'
 
 /**
  * Creates an undo state snapshot from the current game state
@@ -36,10 +36,16 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
   const aiMoveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const animationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const aiMoveScheduledRef = useRef(false)
+  // Bumped whenever an in-flight AI search stops being relevant (new game, undo,
+  // opponent switch, unmount, effect re-run); late answers for an old value are dropped
+  const aiGenerationRef = useRef(0)
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Invalidate answers still in flight (the live counter is the point)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      aiGenerationRef.current++
       if (aiMoveTimeoutRef.current) {
         clearTimeout(aiMoveTimeoutRef.current)
       }
@@ -60,49 +66,58 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
     ) {
       aiMoveScheduledRef.current = true
 
+      const generation = ++aiGenerationRef.current
+
       aiMoveTimeoutRef.current = setTimeout(() => {
-        try {
-          const aiMove = getAIMove(gameState.board, 2, gameState.difficulty)
+        aiMoveTimeoutRef.current = null
+        requestAIMove(gameState.board, 2, gameState.difficulty)
+          .then(aiMove => {
+            if (generation !== aiGenerationRef.current) return
 
-          if (isValidMove(gameState.board, aiMove.row, aiMove.col, 2)) {
-            // Find the flipped discs for animation
-            const validMove = gameState.validMoves.find(
-              m => m.row === aiMove.row && m.col === aiMove.col
-            )
+            if (isValidMove(gameState.board, aiMove.row, aiMove.col, 2)) {
+              // Find the flipped discs for animation
+              const validMove = gameState.validMoves.find(
+                m => m.row === aiMove.row && m.col === aiMove.col
+              )
 
-            setIsAnimating(true)
-            setLastFlippedDiscs(validMove?.flippedPositions || [])
+              setIsAnimating(true)
+              setLastFlippedDiscs(validMove?.flippedPositions || [])
 
-            animationTimeoutRef.current = setTimeout(() => {
-              setGameState(prevState => {
-                try {
-                  // Save undo state before AI move
-                  const undoState = createUndoState(prevState)
-                  const newState = makeMove(prevState, aiMove.row, aiMove.col)
-                  return {
-                    ...newState,
-                    undoHistory: [...prevState.undoHistory, undoState],
+              animationTimeoutRef.current = setTimeout(() => {
+                setGameState(prevState => {
+                  try {
+                    // Save undo state before AI move
+                    const undoState = createUndoState(prevState)
+                    const newState = makeMove(prevState, aiMove.row, aiMove.col)
+                    return {
+                      ...newState,
+                      undoHistory: [...prevState.undoHistory, undoState],
+                    }
+                  } catch {
+                    // AI move execution failed - return unchanged state
+                    return prevState
                   }
-                } catch {
-                  // AI move execution failed - return unchanged state
-                  return prevState
-                }
-              })
-              setIsAnimating(false)
-              setLastFlippedDiscs([])
-              animationTimeoutRef.current = null
-            }, ANIMATION_TIMING.FLIP_ANIMATION_DELAY)
-          }
-        } catch {
-          // AI move failed - reset animation state
-          setIsAnimating(false)
-        } finally {
-          aiMoveScheduledRef.current = false
-        }
+                })
+                setIsAnimating(false)
+                setLastFlippedDiscs([])
+                animationTimeoutRef.current = null
+              }, ANIMATION_TIMING.FLIP_ANIMATION_DELAY)
+            }
+          })
+          .catch(() => {
+            // AI move failed - reset animation state
+            if (generation === aiGenerationRef.current) setIsAnimating(false)
+          })
+          .finally(() => {
+            if (generation === aiGenerationRef.current) aiMoveScheduledRef.current = false
+          })
       }, ANIMATION_TIMING.AI_MOVE_DELAY)
     }
 
     return () => {
+      // Invalidate answers still in flight (the live counter is the point)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      aiGenerationRef.current++
       if (aiMoveTimeoutRef.current) {
         clearTimeout(aiMoveTimeoutRef.current)
         aiMoveTimeoutRef.current = null
@@ -175,6 +190,7 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
   const startNewGame = useCallback(
     (mode: GameMode = 'pvc', difficulty?: Difficulty) => {
       // Clear any pending AI moves and animations
+      aiGenerationRef.current++
       if (aiMoveTimeoutRef.current) {
         clearTimeout(aiMoveTimeoutRef.current)
         aiMoveTimeoutRef.current = null
@@ -215,6 +231,7 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
     }
 
     // Clear any pending AI moves
+    aiGenerationRef.current++
     if (aiMoveTimeoutRef.current) {
       clearTimeout(aiMoveTimeoutRef.current)
       aiMoveTimeoutRef.current = null

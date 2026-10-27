@@ -6,6 +6,20 @@ import { createEmptyBoard, makeMove, getValidMoves } from '@/lib/othelloRules'
 import { createInitialGameState } from '@/lib/gameStateHelper'
 import type { Board } from '@/types/othello.types'
 
+// aiClient uses import.meta (worker URL), which Jest does not compile. The mock answers
+// at once, or holds the answer until the test releases it.
+const mockHeld: Array<() => void> = []
+const mockHold = { value: false }
+jest.mock('@/lib/aiClient', () => ({
+  requestAIMove: (...args: unknown[]) =>
+    new Promise(resolve => {
+      const { getAIMove } = jest.requireActual('@/lib/aiStrategies')
+      const move = getAIMove(...(args as Parameters<typeof getAIMove>))
+      if (mockHold.value) mockHeld.push(() => resolve(move))
+      else resolve(move)
+    }),
+}))
+
 function stateWith(board: Board, currentPlayer: 1 | 2) {
   const base = createInitialGameState('pvc', 'hard')
   return { ...base, board, currentPlayer, validMoves: getValidMoves(board, currentPlayer) }
@@ -73,20 +87,45 @@ describe('passes and game end', () => {
 })
 
 describe('AI scheduling under StrictMode', () => {
-  beforeEach(() => jest.useFakeTimers())
+  beforeEach(() => {
+    jest.useFakeTimers()
+    mockHold.value = false
+    mockHeld.length = 0
+  })
   afterEach(() => jest.useRealTimers())
 
-  it('the opponent still replies after effects are re-run', () => {
+  it('the opponent still replies after effects are re-run', async () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => createElement(StrictMode, null, children)
     const { result } = renderHook(() => useOthelloGame('medium'), { wrapper })
     const first = result.current.gameState.validMoves[0]
     act(() => result.current.handlePlayerMove(first.row, first.col))
     for (let i = 0; i < 60; i++) {
-      act(() => {
+      await act(async () => {
         jest.advanceTimersByTime(100)
       })
     }
     expect(result.current.gameState.moveHistory.length).toBe(2)
     expect(result.current.gameState.currentPlayer).toBe(1)
+  })
+
+  it('drops a late answer after a new game starts', async () => {
+    mockHold.value = true
+    const { result } = renderHook(() => useOthelloGame('medium'))
+    const first = result.current.gameState.validMoves[0]
+    act(() => result.current.handlePlayerMove(first.row, first.col))
+    for (let i = 0; i < 20; i++) {
+      await act(async () => {
+        jest.advanceTimersByTime(100)
+      })
+    }
+    expect(mockHeld.length).toBeGreaterThan(0)
+    act(() => result.current.startNewGame('pvc', 'medium'))
+    await act(async () => {
+      mockHeld.forEach(release => release())
+      jest.advanceTimersByTime(2000)
+    })
+    expect(result.current.gameState.moveHistory.length).toBe(0)
+    expect(result.current.gameState.currentPlayer).toBe(1)
+    expect(result.current.isAnimating).toBe(false)
   })
 })

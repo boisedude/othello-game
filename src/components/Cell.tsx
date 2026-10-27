@@ -62,6 +62,8 @@ export const Cell = memo(function Cell({
       className={cn(
         'group relative flex h-full w-full items-center justify-center perspective-800',
         'bg-[#1d6040] transition-colors duration-150',
+        // Narrow screens: hairlines drawn inside the cell so the grid needs no gap
+        'max-[440px]:shadow-[inset_0_0_0_0.5px_#0f3d28]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
         isValidMove && !disabled && 'cursor-pointer hover:bg-[#22704a]',
         disabled && 'cursor-default',

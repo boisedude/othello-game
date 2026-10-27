@@ -74,13 +74,13 @@ export function Board({
     // Matte wooden frame with coordinate labels in its margin
     <div
       className={cn(
-        'arcade-board relative mx-auto bg-[#5b4333] p-6 sm:p-7',
+        'arcade-board relative mx-auto bg-[#5b4333] p-6 max-[440px]:p-[3px] sm:p-7',
         className
       )}
     >
       {/* Column labels */}
       <div
-        className="pointer-events-none absolute inset-x-6 top-0 flex h-6 text-xs text-muted-foreground sm:inset-x-7 sm:h-7"
+        className="pointer-events-none absolute inset-x-6 top-0 flex h-6 text-xs max-[440px]:hidden text-muted-foreground sm:inset-x-7 sm:h-7"
         aria-hidden="true"
       >
         {Array.from({ length: BOARD_SIZE }, (_, i) => (
@@ -92,7 +92,7 @@ export function Board({
 
       {/* Row labels */}
       <div
-        className="pointer-events-none absolute inset-y-6 left-0 flex w-6 flex-col text-xs text-muted-foreground sm:inset-y-7 sm:w-7"
+        className="pointer-events-none absolute inset-y-6 left-0 flex w-6 flex-col text-xs max-[440px]:hidden text-muted-foreground sm:inset-y-7 sm:w-7"
         aria-hidden="true"
       >
         {Array.from({ length: BOARD_SIZE }, (_, i) => (
@@ -106,7 +106,7 @@ export function Board({
       <div
         role="grid"
         aria-label="Othello game board"
-        className="relative grid aspect-square w-full gap-px overflow-hidden rounded-[2px] border border-[#0f3d28] bg-[#0f3d28]"
+        className="relative grid aspect-square w-full gap-px overflow-hidden rounded-[2px] border border-[#0f3d28] bg-[#0f3d28] max-[440px]:gap-0 max-[440px]:border-0"
         style={{
           gridTemplateColumns: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${BOARD_SIZE}, minmax(0, 1fr))`,
