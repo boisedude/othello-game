@@ -11,6 +11,8 @@ import { VictoryDialog } from '@/components/VictoryDialog'
 import { LeaderboardDialog } from '@/components/LeaderboardDialog'
 import { Tutorial } from '@/components/Tutorial'
 import { OpponentChip } from '@/components/OpponentChip'
+import { ConfirmSwitchDialog } from '@/components/ConfirmSwitchDialog'
+import type { Difficulty } from '@/types/othello.types'
 import { Button } from '@/components/ui/button'
 import { ArrowLeftIcon, VolumeIcon, VolumeOffIcon, HelpIcon } from '@shared/icons'
 import { useOthelloGame } from '@/hooks/useOthelloGame'
@@ -145,6 +147,26 @@ export function OthelloGame() {
     setShowVictoryDialog,
   ])
 
+  // Changing opponent always starts a fresh game; with a game in progress the player
+  // confirms first, so the opponent can never change under a running game.
+  const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty | null>(null)
+  const applyDifficulty = (difficulty: Difficulty) => {
+    setShowVictoryDialog(false)
+    changeDifficulty(difficulty)
+    changeCharacter(difficulty)
+  }
+  const handleDifficultyChange = (difficulty: Difficulty) => {
+    if (difficulty === gameState.difficulty) return
+    if (gameState.status === 'playing' && gameState.moveHistory.length > 0) {
+      setPendingDifficulty(difficulty)
+    } else {
+      applyDifficulty(difficulty)
+    }
+  }
+  const pendingName = pendingDifficulty
+    ? { easy: 'Bella', medium: 'Coop', hard: 'Bentley' }[pendingDifficulty]
+    : ''
+
   const handleNewGame = useCallback(() => {
     setShowVictoryDialog(false)
     startNewGame()
@@ -200,6 +222,12 @@ export function OthelloGame() {
   }, [handleNewGame, toggleMute, canUndo, undoMove])
 
   const opponent = character.name
+  // A pass: the same player moved twice in a row, so the other side had no legal move
+  const lastMoveOwner = gameState.lastMove?.player
+  const passed =
+    gameState.status === 'playing' &&
+    lastMoveOwner !== undefined &&
+    lastMoveOwner === gameState.currentPlayer
   const turnText =
     gameState.status === 'won'
       ? gameState.winner === 1
@@ -208,8 +236,12 @@ export function OthelloGame() {
       : gameState.status === 'draw'
         ? 'Draw'
         : gameState.currentPlayer === 1
-          ? 'Your turn'
-          : `${opponent} is thinking`
+          ? passed
+            ? `${opponent} passes, go again`
+            : 'Your turn'
+          : passed
+            ? 'You pass'
+            : `${opponent} is thinking`
   const turnActive =
     gameState.status !== 'playing' ? 'over' : gameState.currentPlayer === 1 ? 'you' : 'opponent'
 
@@ -237,10 +269,7 @@ export function OthelloGame() {
           <OpponentChip
             character={character}
             difficulty={gameState.difficulty}
-            onDifficultyChange={(newDifficulty) => {
-              changeDifficulty(newDifficulty)
-              changeCharacter(newDifficulty)
-            }}
+            onDifficultyChange={handleDifficultyChange}
           />
           <Button
             variant="ghost"
@@ -331,6 +360,16 @@ export function OthelloGame() {
         {gameState.status === 'draw' &&
           `Game ended in a draw. Black ${gameState.blackCount}, White ${gameState.whiteCount}`}
       </div>
+
+      <ConfirmSwitchDialog
+        open={pendingDifficulty !== null}
+        title={`Play ${pendingName} instead?`}
+        onConfirm={() => {
+          if (pendingDifficulty) applyDifficulty(pendingDifficulty)
+          setPendingDifficulty(null)
+        }}
+        onCancel={() => setPendingDifficulty(null)}
+      />
 
       {/* Victory Dialog */}
       <VictoryDialog

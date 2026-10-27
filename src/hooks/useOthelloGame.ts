@@ -107,6 +107,9 @@ export function useOthelloGame(initialDifficulty: Difficulty = 'medium') {
         clearTimeout(aiMoveTimeoutRef.current)
         aiMoveTimeoutRef.current = null
       }
+      // The timer is gone, so the slot must be free or the opponent never replies
+      // (React StrictMode re-runs this effect, and so does any state change mid-wait)
+      aiMoveScheduledRef.current = false
     }
   }, [
     gameState.currentPlayer,
