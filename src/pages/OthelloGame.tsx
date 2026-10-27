@@ -21,7 +21,6 @@ import { useGameAudio } from '@/hooks/useGameAudio'
 import { useCharacterSelection } from '@/hooks/useCharacterSelection'
 import { useBentleyStats } from '@/hooks/useBentleyStats'
 import { getInitialDifficulty, hasCharacterParam } from '@/lib/characterParam'
-import { recordArcadeResult } from '@/lib/arcadeResult'
 import { STORAGE_KEYS } from '@/lib/storageKeys'
 
 export function OthelloGame() {
@@ -85,9 +84,6 @@ export function OthelloGame() {
       const isPerfect =
         (gameState.winner === 1 && gameState.whiteCount === 0) ||
         (gameState.winner === 2 && gameState.blackCount === 0)
-
-      // Arcade-wide record: once per game, guarded by the prevStatusRef check
-      recordArcadeResult(gameState.mode, gameState.difficulty, gameState.status, gameState.winner)
 
       if (gameState.status === 'won') {
         if (gameState.winner === 1) {
